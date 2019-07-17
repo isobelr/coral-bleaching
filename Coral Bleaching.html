@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+    
+<head>
+    <meta charset="utf-8">
+    <title>Coral Bleaching</title>
+    <style>
+        #heading {
+            max-width: 40rem;
+            margin: 1rem auto;
+            text-align: center;
+            font-size: 1rem;
+            margin: 1.5rem auto;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+
+        div.tooltip {
+            position: absolute;
+            text-align: center;
+            width: 200px;
+            height: 50px;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: #FFF;
+            border: 2px solid #d9d9d9;
+            border-radius: 5px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<section id='heading'>
+    <h1 class='heading'> Coral Bleaching Node Network </h1>
+    <p class='heading'> Isobel Rowe </p>
+</section>
+
+<body style="background-color: #FFFFFF">
+    <script type="text/javascript">
+        var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        //Load Data File
+        d3.json("data.json", function(error, data) {
+            //Change the data files
+            var node = data.nodes;
+            node.forEach(function(d) {
+                d.id = d.id;
+                d.x = d.x;
+                d.y = d.y;
+            });
+
+            //Links
+            var link = data.links;
+            link.forEach(function(d) {
+                d.node01 = d.node01;
+                d.node02 = d.node02;
+                d.amount = d.amount;
+            });
+
+            //Nodes
+            node.forEach(function(d) {
+                var temp = [];
+                var count = 0;
+                link.forEach(function(x) {
+                    if (x.node01 == d.id || x.node02 == d.id) {
+                        temp.push(x.amount);
+                        count++;
+                    }
+                });
+                d.total = d3.sum(temp);
+                d.count = count;
+            });
+
+            //Coordinates
+            link.forEach(function(d) {
+                temporary1 = [];
+                temporary2 = [];
+                node.forEach(function(x) {
+                    if (d.node01 == x.id) {
+                        temporary1.push(x.x);
+                        temporary1.push(x.y);
+                    }
+                });
+                node.forEach(function(x) {
+                    if (d.node02 == x.id) {
+                        temporary2.push(x.x);
+                        temporary2.push(x.y);
+                    }
+                });
+                d.x1 = temporary1[0];
+                d.y1 = temporary1[1];
+                d.x2 = temporary2[0];
+                d.y2 = temporary2[1];
+            });
+
+            //SVG element
+            var svg = d3.select("body")
+                .append("svg")
+                .attr("width", 1000)
+                .attr("height", 1000)
+                .style("display", "block")
+                .style("margin", "auto")
+                .append("g");
+
+            //Lines
+            var line = svg.attr("class", "line").selectAll("line")
+                .data(link)
+                .enter().append("line");
+            line.style("stroke", "#80c1ff")
+                .attr("stroke-width", function(d) {
+                    size = d.amount / 60;
+                    if (size < 2) {
+                        size = 2;
+                    }
+                    return size;
+                })
+                .attr("x1", function(d) {
+                    return d.x1;
+                })
+                .attr("y1", function(d) {
+                    return d.y1;
+                })
+                .attr("x2", function(d) {
+                    return d.x2;
+                })
+                .attr("y2", function(d) {
+                    return d.y2;
+                })
+                .append("title").text(function(d) {
+                    return "From " + d.node01 + " to " +
+                        d.node02 + ": " + d.amount;
+                });
+
+            //Circles   
+            var circle = svg.selectAll("circle")
+                .data(node)
+                .enter()
+                .append("circle");
+            circle.style("stroke", "#003566")
+                .style("fill", "#003566")
+                .attr("cx", function(d) {
+                    return d.x;
+                })
+                .attr("cy", function(d) {
+                    return d.y;
+                })
+                .attr("r", function(d) {
+                    radius = d.total / 80;
+                    return radius
+                })
+
+                //Mouseover function
+                .on("mouseover", function(d) {
+                    d3.selectAll('circle').attr('opacity', "0.8");
+                    d3.selectAll('line').attr("opacity", function(n) {
+                        if ((n.x1 == d.x && n.y1 == d.y) || (n.x2 == d.x && n.y2 == d.y)) {
+                            return "1"
+                        } else {
+                            return "0.05"
+                        };
+                    });
+                    d3.select(this).style("fill", "#003566");
+                    div.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    div.html("<strong>" + (d.id).toUpperCase() + "</strong>" +
+                            "</br> Total Amount of Trading : " + d.total +
+                            "</br> Number of Connected Locations : " + d.count)
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+
+                //Mouseout function
+                .on("mouseout", function(d) {
+                    d3.selectAll('circle,line')
+                        .attr('opacity', '1');
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+        });
+    </script>
+</body></html>
